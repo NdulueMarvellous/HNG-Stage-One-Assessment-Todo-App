@@ -60,6 +60,28 @@ runs in the page.
 npm test          # or: node --test
 ```
 
+## Deploy to Vercel
+
+This is a **zero-build** site, so Vercel has to serve it straight from the repository
+root. `vercel.json` says exactly that:
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": null,
+  "outputDirectory": "."
+}
+```
+
+Without `outputDirectory: "."`, Vercel sees `package.json`, finds no build script and
+no output directory, and deploys "successfully" with an empty output — every URL then
+answers `404: NOT_FOUND` even though the dashboard says *Ready*.
+
+If you configure the project in the dashboard instead of through `vercel.json`, use
+**Framework Preset: Other**, **Build Command: (empty)**, **Output Directory: `.`** and
+leave **Root Directory** empty. Then redeploy and confirm `index.html` shows up under
+the deployment's *Output* tab.
+
 ## Data model
 
 ```js
