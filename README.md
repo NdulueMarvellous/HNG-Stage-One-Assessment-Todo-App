@@ -82,6 +82,11 @@ If you configure the project in the dashboard instead of through `vercel.json`, 
 leave **Root Directory** empty. Then redeploy and confirm `index.html` shows up under
 the deployment's *Output* tab.
 
+The Node.js version is pinned to `24.x` in `package.json` (`engines.node`), which matches
+Vercel's current default and the version this project is developed against. An open-ended
+range such as `>=18` makes Vercel log a build warning and silently adopt the newest major
+release, which can break the build with no code change.
+
 ## Data model
 
 ```js
