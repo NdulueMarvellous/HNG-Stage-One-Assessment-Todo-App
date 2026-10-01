@@ -1,13 +1,11 @@
-'use strict';
-
 /**
- * Unit tests for the pure core in src/todos.js.
- * Run with:  node --test
+ * Unit tests for the pure core in src/core/todos.js.
+ * Run with:  npm run test:core   (node --test)
  */
 
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const core = require('../src/todos.js');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import core from '../src/core/todos.js';
 
 /** A fake localStorage so the store can be tested without a browser. */
 function memoryStorage(initial) {
@@ -266,4 +264,47 @@ test('countTodos counts total, active and completed', () => {
   const todos = core.toggleTodo(makeList('one', 'two', 'three'), 'id-3');
   assert.deepEqual(core.countTodos(todos), { total: 3, active: 2, completed: 1 });
   assert.deepEqual(core.countTodos([]), { total: 0, active: 0, completed: 0 });
+});
+
+/* ------------------------------------------------------------------ *
+ * The observable store
+ * ------------------------------------------------------------------ */
+
+test('createStore adds, persists and rehydrates from storage', () => {
+  const storage = memoryStorage();
+  const store = core.createStore({ storage, key: 'test:key' });
+  store.add('Buy milk', { id: 'id-1', priority: 'high' });
+  store.add('Walk dog', { id: 'id-2' });
+
+  assert.deepEqual(titlesOf(store.getTodos()), ['Buy milk', 'Walk dog']);
+  assert.ok(storage.keys().includes('test:key'));
+
+  const reloaded = core.createStore({ storage, key: "test:key" });
+  assert.deepEqual(titlesOf(reloaded.getTodos()), ['Buy milk', 'Walk dog']);
+  assert.equal(reloaded.getTodos()[0].priority, 'high');
+});
+
+test('createStore notifies subscribers and reports storage failures', () => {
+  const events = [];
+  const store = core.createStore({ storage: memoryStorage() });
+  const unsubscribe = store.subscribe((todos, event) => events.push([todos.length, event]));
+
+  store.add('one', { id: 'id-1' });
+  store.toggle('id-1');
+  assert.deepEqual(events, [[1, 'change'], [1, 'change']]);
+
+  unsubscribe();
+  store.remove('id-1');
+  assert.equal(events.length, 2, 'unsubscribed listeners stop receiving events');
+
+  const failing = {
+    getItem: () => null,
+    setItem: () => { throw new Error('quota'); },
+    removeItem: () => {}
+  };
+  const broken = core.createStore({ storage: failing });
+  const failureEvents = [];
+  broken.subscribe((todos, event) => failureEvents.push(event));
+  broken.add('nope', { id: 'id-9' });
+  assert.deepEqual(failureEvents, ['storage-unavailable']);
 });

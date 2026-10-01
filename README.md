@@ -1,25 +1,41 @@
-# Todo — a functional, dependency-free todo web app
+# Todo — a React todo web app
 
-A complete todo app you can open straight from disk: no build step, no installs, no
-frameworks. Priorities, search, sorting, filters, inline editing, undo and
-localStorage persistence, with a light/dark theme and keyboard support.
+A fast, offline-friendly todo app built with **React 19 + Vite**. Priorities, search,
+sorting, filters, inline editing, undo and `localStorage` persistence, with a light/dark
+theme and keyboard support.
+
+The logic lives in a dependency-free, DOM-free core module that is shared by the UI and
+the unit tests, so the code that runs in the page is exactly the code under test.
 
 ## Run it
 
-**Option 1 — just open it**
-
-Double-click `index.html`.
-
-**Option 2 — serve it (recommended)**
-
 ```bash
-npm start                  # http://127.0.0.1:4173
-node tools/serve.js 8080   # pick your own port
+npm install     # installs React, Vite and the test tooling
+npm run dev     # start the dev server (http://localhost:5173)
 ```
 
-`tools/serve.js` is a tiny static file server with no dependencies, so the app always
-loads over `http://` where `localStorage` behaves identically in every browser. It lives
-under `tools/` on purpose (see *Deploy to Vercel* below).
+Other scripts:
+
+```bash
+npm run build     # production build into dist/
+npm run preview   # serve the built output locally
+```
+
+Node **24.x** is required (pinned in `package.json` → `engines.node`).
+
+## Test
+
+```bash
+npm test          # runs the core tests, then the React component tests
+npm run test:core # node --test  → the pure core (src/core/todos.js)
+npm run test:ui   # vitest run   → the React app in jsdom
+```
+
+- `tests/core.test.js` — 27 unit tests for the pure core (validation, CRUD, filters,
+  sorting, storage, the observable store). Runs on the built-in `node:test` runner with
+  no DOM.
+- `tests/ui.test.jsx` — 16 component tests that render the real app with
+  `@testing-library/react` and assert on what a user would see.
 
 ## Features
 
@@ -33,72 +49,59 @@ under `tools/` on purpose (see *Deploy to Vercel* below).
 - **Sorting** — newest, oldest, A → Z or by priority.
 - **Clear completed** — bulk removal, also undoable.
 - **Persistence** — every change is saved to `localStorage` and restored on reload.
-- **Theme** — follows your OS by default; the toggle remembers your choice.
-- **Accessibility** — skip link, labelled controls, `aria-live` status, visible focus
-  rings, `aria-pressed` filter state, `prefers-reduced-motion` support.
-- **Safe rendering** — user text is only ever written with `textContent`.
-- **Keyboard** — `/` focuses search, `Esc` clears search or cancels an edit.
+- **Theme** — follows your OS by default; the toggle remembers your choice. The saved
+  theme is applied by a tiny inline script in `index.html` before first paint, so there is
+  no flash of the wrong theme.
+- **Accessibility** — skip link, labelled controls, `aria-live` status and toast,
+  visible focus rings, `aria-pressed` filter/theme state, and focus management when an
+  inline editor opens and closes.
+- **Keyboard** — press `/` to focus search; `Esc` clears search or cancels an edit.
 
 ## Project structure
 
 ```
-index.html           Markup (semantic, accessible)
-styles.css           Design tokens + light/dark themes, responsive layout
-src/todos.js         Pure logic: validation, CRUD, filters, sort, storage (no DOM)
-src/app.js           DOM wiring, rendering, events, theme, shortcuts
-tools/serve.js       Dependency-free static server (development only)
-tests/todos.test.js  Unit tests for the core (node:test)
-tests/markup.test.js Integration test: app.js element hooks exist in index.html
+index.html                 Vite entry + the pre-paint theme script
+vercel.json                Vercel config (framework: vite, output: dist)
+vite.config.js             Build config + Vitest (jsdom) config
+public/                    Static assets copied to the build (favicons, robots.txt, …)
+src/
+  main.jsx                 Mounts <App/> into #root
+  App.jsx                  The app: view state, toast, shortcuts, composition
+  styles.css               Design tokens, light/dark themes, responsive layout
+  core/todos.js            Pure logic: validation, CRUD, filters, sort, storage, store
+  hooks/
+    useTodoStore.js        Subscribes React to the pure store
+    useTheme.js            Theme preference (stored choice or OS default)
+  lib/format.js            Presentation-only helpers (dates, pluralise, truncate)
+  components/
+    Header.jsx             Title, today's date, theme toggle
+    Composer.jsx           The "add a task" form with inline validation
+    Toolbar.jsx            Filter chips, sort select, search box
+    TodoList.jsx           The list container + empty state
+    TodoItem.jsx           One task row (toggle, rename, priority, delete)
+    Toast.jsx              Transient status message with an optional action
+tests/
+  core.test.js             Unit tests for the pure core (node:test)
+  ui.test.jsx              Component tests for the app (Vitest + Testing Library)
+  setup.js                 Vitest setup (jest-dom, matchMedia shim, storage reset)
 ```
 
-`src/todos.js` is written as a UMD-lite module: the browser gets `window.TodoCore`,
-and Node can `require()` the same file — so the tested code is exactly the code that
-runs in the page.
+## Architecture
 
-## Test
+`src/core/todos.js` is a plain ES module with no DOM or framework dependencies. It
+exposes pure functions (validation, `addTodo`, `toggleTodo`, `editTodo`, `filterTodos`,
+`sortTodos`, …) plus a small observable **store** created with `createStore()`:
 
-```bash
-npm test          # or: node --test
-```
+- `store.getTodos()` returns a copy of the current list.
+- `store.subscribe(listener)` registers a listener and returns an unsubscribe function.
+  Listeners are called as `(todos, event)`, where `event` is either `'change'`
+  (the list was saved) or `'storage-unavailable'` (the list changed in memory but the
+  write failed).
+- `store.add / toggle / setPriority / edit / remove / restore / clearCompleted` run a pure
+  mutation, persist the result and notify subscribers exactly once.
 
-## Deploy to Vercel
-
-This is a **zero-build** site, so Vercel has to serve it straight from the repository
-root. `vercel.json` says exactly that:
-
-```json
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "buildCommand": null,
-  "outputDirectory": "."
-}
-```
-
-`"framework": null` tells Vercel the project has no framework, so it serves the files as
-plain static assets. Without it, Vercel keeps the auto-detected framework preset it saved
-on the project (historically *Node.js*, because the repo once had a root `server.js`) and
-tries to run the app as a Function.
-
-Without `outputDirectory: "."`, Vercel sees `package.json`, finds no build script and
-no output directory, and deploys "successfully" with an empty output — every URL then
-answers `404: NOT_FOUND` even though the dashboard says *Ready*.
-
-Vercel additionally auto-detects a root-level `server.js` (or `src/server.js`) that calls
-`listen()` and deploys it as a Node.js server Function. That Function never sees the
-static files, so every URL answers `404 — Not found` while the build still reports
-success. The development server therefore lives in `tools/serve.js`, outside the path
-Vercel scans, and the site is served as plain static files.
-
-If you configure the project in the dashboard instead of through `vercel.json`, use
-**Framework Preset: Other**, **Build Command: (empty)**, **Output Directory: `.`** and
-leave **Root Directory** empty. Then redeploy and confirm `index.html` shows up under
-the deployment's *Output* tab.
-
-The Node.js version is pinned to `24.x` in `package.json` (`engines.node`), which matches
-Vercel's current default and the version this project is developed against. An open-ended
-range such as `>=18` makes Vercel log a build warning and silently adopt the newest major
-release, which can break the build with no code change.
+`useTodoStore()` subscribes React to that store, so the React components stay a thin,
+declarative shell over the tested core.
 
 ## Data model
 
@@ -117,9 +120,27 @@ Storage key: `todo-app:todos:v1` (envelope `{ version, todos }`), theme key:
 `todo-app:theme`. Anything read back from storage is normalised and filtered, so a
 corrupted or hand-edited payload can never break the UI.
 
+## Deploy to Vercel
+
+`vercel.json` tells Vercel exactly how to build and serve the site:
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
+}
+```
+
+Vercel runs `npm run build` and serves the resulting `dist/` directory as a static site.
+(If you configure the project in the dashboard instead, use **Framework Preset: Vite**,
+**Build Command: `npm run build`** and **Output Directory: `dist`**.)
+
 ## Notes and limits
 
 - Data lives in the browser only — there is no backend or sync.
-- If storage is blocked (private mode), the app keeps working in memory and shows a
-  warning instead of failing silently.
-- Deleting is undoable through the toast; no confirmation dialog on purpose.
+- If storage is blocked (private mode / quota), the app keeps working in memory and shows
+  a warning toast instead of failing silently.
+- Deleting is undoable through the toast; there is no confirmation dialog on purpose.
+

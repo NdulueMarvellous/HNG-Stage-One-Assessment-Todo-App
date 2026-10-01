@@ -4,6 +4,7 @@ coverage/
 *.log
 .DS_Store
 Thumbs.db
+.vercel/
 
 # Editor / agent tooling metadata (not part of the app)
 .kilo/

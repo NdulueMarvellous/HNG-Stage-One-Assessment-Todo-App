@@ -1,19 +1,11 @@
 /**
- * Todo Core — the pure, DOM-free heart of the app.
+ * Todo Core - the pure, DOM-free heart of the app.
  *
- * Loaded as a classic <script> in the browser (exposes `window.TodoCore`) and
- * direct-`require()`d by Node's built-in test runner, so the exact same code
- * that runs in the page is covered by the unit tests. No build step, no
- * dependencies, no leaked globals.
+ * An ES module imported by both the React UI (src/App.jsx and friends) and
+ * the unit tests, so the exact same code that runs in the page is the code
+ * under test. No DOM, no globals, no dependencies.
  */
-(function (root, factory) {
-  var api = factory();
-  if (typeof module === 'object' && module.exports) {
-    module.exports = api;
-  } else {
-    root.TodoCore = api;
-  }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+const core = (function () {
   'use strict';
 
   var SCHEMA_VERSION = 1;
@@ -342,10 +334,13 @@
     var listeners = [];
     var todos = deserialize(storage ? safeGet(storage, key) : null);
 
+    /**
+     * Persist the current list, reporting whether it reached storage.
+     * Returns true when there is nothing to save or the write succeeded.
+     */
     function persist() {
-      if (storage && !safeSet(storage, key, serialize(todos))) {
-        emit('storage-unavailable');
-      }
+      if (!storage) return true;
+      return safeSet(storage, key, serialize(todos));
     }
 
     function emit(event) {
@@ -358,11 +353,15 @@
       return todos.slice();
     }
 
+    /**
+     * Adopt a new list and notify listeners exactly once: a failed save is
+     * reported as `storage-unavailable` (the in-memory list is still updated),
+     * a successful one as `change`.
+     */
     function commit(next) {
       if (next === todos) return todos;
       todos = next;
-      persist();
-      emit('change');
+      emit(persist() ? 'change' : 'storage-unavailable');
       return todos;
     }
 
@@ -460,4 +459,41 @@
     safeRemove: safeRemove,
     createStore: createStore
   };
-});
+})();
+
+export const {
+  SCHEMA_VERSION,
+  STORAGE_KEY,
+  THEME_KEY,
+  MAX_TITLE_LENGTH,
+  PRIORITIES,
+  DEFAULT_PRIORITY,
+  FILTERS,
+  SORTS,
+  MESSAGES,
+  sanitizeTitle,
+  validateTitle,
+  isPriority,
+  createId,
+  createTodo,
+  findTodo,
+  addTodo,
+  toggleTodo,
+  setPriority,
+  editTodo,
+  removeTodo,
+  restoreTodo,
+  clearCompleted,
+  sortTodos,
+  filterTodos,
+  countTodos,
+  normalizeTodo,
+  serialize,
+  deserialize,
+  safeGet,
+  safeSet,
+  safeRemove,
+  createStore
+} = core;
+
+export default core;

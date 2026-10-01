@@ -1,132 +1,34 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="A fast, offline-friendly todo app with priorities, filters, search, sorting and undo."
+      content="A fast, offline-friendly React todo app with priorities, filters, search, sorting and undo."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Todo — stay on top of your day</title>
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="favicon.ico" sizes="32x32" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <script>
+      // Apply the saved (or OS) theme before first paint so there is no flash.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('todo-app:theme');
+          var prefersDark =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme =
+            stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (error) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to your tasks</a>
-
-    <div class="app">
-      <header class="app__header">
-        <div>
-          <p class="app__eyebrow">My day</p>
-          <h1 class="app__title">Todo</h1>
-          <p class="app__subtitle" id="today"></p>
-        </div>
-        <button
-          type="button"
-          id="theme-toggle"
-          class="icon-button"
-          aria-pressed="false"
-          aria-label="Switch to dark theme"
-        >
-          <span class="icon icon--sun" aria-hidden="true">☀</span>
-          <span class="icon icon--moon" aria-hidden="true">☾</span>
-        </button>
-      </header>
-
-      <main id="main">
-        <section class="panel" aria-labelledby="add-heading">
-          <h2 class="sr-only" id="add-heading">Add a task</h2>
-          <form id="todo-form" class="composer" novalidate>
-            <div class="composer__field">
-              <label class="sr-only" for="new-todo">Task description</label>
-              <input
-                id="new-todo"
-                class="composer__input"
-                name="title"
-                type="text"
-                placeholder="What needs doing?"
-                autocomplete="off"
-                maxlength="200"
-                required
-              />
-            </div>
-            <div class="composer__controls">
-              <label class="sr-only" for="new-priority">Priority</label>
-              <select id="new-priority" class="select" name="priority">
-                <option value="low">Low</option>
-                <option value="medium" selected>Medium</option>
-                <option value="high">High</option>
-              </select>
-              <button type="submit" class="button button--primary">Add task</button>
-            </div>
-          </form>
-          <p id="form-error" class="form-error" role="alert" hidden></p>
-          <p class="hint">
-            Press <kbd>/</kbd> to search · double-click a task to rename it · your list is saved in
-            this browser.
-          </p>
-        </section>
-
-        <section class="panel panel--list" aria-labelledby="list-heading">
-          <h2 class="sr-only" id="list-heading">Your tasks</h2>
-
-          <div class="toolbar">
-            <div class="filters" role="group" aria-label="Filter tasks">
-              <button type="button" class="chip" data-filter="all" aria-pressed="true">
-                All <span class="chip__count" data-count="all">0</span>
-              </button>
-              <button type="button" class="chip" data-filter="active" aria-pressed="false">
-                Active <span class="chip__count" data-count="active">0</span>
-              </button>
-              <button type="button" class="chip" data-filter="completed" aria-pressed="false">
-                Done <span class="chip__count" data-count="completed">0</span>
-              </button>
-            </div>
-            <div class="toolbar__right">
-              <label class="sr-only" for="sort">Sort tasks</label>
-              <select id="sort" class="select select--subtle">
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="alpha">A → Z</option>
-                <option value="priority">Priority</option>
-              </select>
-              <label class="sr-only" for="search">Search tasks</label>
-              <input
-                id="search"
-                class="search"
-                type="search"
-                placeholder="Search tasks"
-                autocomplete="off"
-              />
-            </div>
-          </div>
-
-          <ul id="todo-list" class="todo-list" role="list"></ul>
-          <p id="empty-state" class="empty-state" hidden></p>
-
-          <div class="list-footer">
-            <p id="status" class="status" aria-live="polite"></p>
-            <button type="button" id="clear-completed" class="button button--ghost" disabled>
-              Clear completed
-            </button>
-          </div>
-        </section>
-      </main>
-
-      <footer class="app__footer">
-        <p>Everything is stored in your browser — the app works offline.</p>
-      </footer>
-    </div>
-
-    <div id="toast" class="toast" role="status" aria-live="polite" hidden>
-      <span id="toast-message" class="toast__message"></span>
-      <button type="button" id="toast-action" class="toast__action" hidden>Undo</button>
-    </div>
-
-    <script src="src/todos.js"></script>
-    <script src="src/app.js"></script>
-  </body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>  </body>
 </html>
