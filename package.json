@@ -4,8 +4,8 @@
   "private": true,
   "description": "A dependency-free todo web app with priorities, filters, search, sorting, undo and localStorage persistence.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node tools/serve.js",
+    "dev": "node tools/serve.js",
     "test": "node --test"
   },
   "engines": {

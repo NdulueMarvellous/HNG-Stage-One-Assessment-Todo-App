@@ -1,10 +1,15 @@
 /**
- * Zero-dependency static file server.
+ * Zero-dependency static file server (development only).
  *
- * The app works by opening index.html directly, but serving it over http://
- * guarantees localStorage behaves identically in every browser.
+ * NOTE: this file intentionally lives in tools/ instead of the repository root.
+ * Vercel treats a root-level `server.js` (or `src/server.js`) that calls
+ * `listen()` as a Node.js server entrypoint and deploys it as a Function
+ * instead of serving the static site — which makes every URL answer
+ * `404 — Not found`. Keeping the server here avoids that auto-detection while
+ * still giving us a real http:// origin locally, where localStorage behaves
+ * identically in every browser.
  *
- * Usage:  node server.js [port]
+ * Usage:  node tools/serve.js [port]
  */
 'use strict';
 
@@ -12,7 +17,8 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const ROOT = __dirname;
+// Serve from the repository root, one level above tools/.
+const ROOT = path.join(__dirname, '..');
 const PORT = Number(process.argv[2] || process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
 
@@ -99,7 +105,7 @@ const server = http.createServer((request, response) => {
 
 server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Try: node server.js ${PORT + 1}`);
+    console.error(`Port ${PORT} is already in use. Try: node tools/serve.js ${PORT + 1}`);
   } else {
     console.error(error.message);
   }

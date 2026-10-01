@@ -13,12 +13,13 @@ Double-click `index.html`.
 **Option 2 — serve it (recommended)**
 
 ```bash
-npm start            # http://127.0.0.1:4173
-node server.js 8080  # pick your own port
+npm start                  # http://127.0.0.1:4173
+node tools/serve.js 8080   # pick your own port
 ```
 
-`server.js` is a tiny static file server with no dependencies, so the app always
-loads over `http://` where `localStorage` behaves identically in every browser.
+`tools/serve.js` is a tiny static file server with no dependencies, so the app always
+loads over `http://` where `localStorage` behaves identically in every browser. It lives
+under `tools/` on purpose (see *Deploy to Vercel* below).
 
 ## Features
 
@@ -45,7 +46,7 @@ index.html           Markup (semantic, accessible)
 styles.css           Design tokens + light/dark themes, responsive layout
 src/todos.js         Pure logic: validation, CRUD, filters, sort, storage (no DOM)
 src/app.js           DOM wiring, rendering, events, theme, shortcuts
-server.js            Dependency-free static server
+tools/serve.js       Dependency-free static server (development only)
 tests/todos.test.js  Unit tests for the core (node:test)
 tests/markup.test.js Integration test: app.js element hooks exist in index.html
 ```
@@ -76,6 +77,12 @@ root. `vercel.json` says exactly that:
 Without `outputDirectory: "."`, Vercel sees `package.json`, finds no build script and
 no output directory, and deploys "successfully" with an empty output — every URL then
 answers `404: NOT_FOUND` even though the dashboard says *Ready*.
+
+Vercel additionally auto-detects a root-level `server.js` (or `src/server.js`) that calls
+`listen()` and deploys it as a Node.js server Function. That Function never sees the
+static files, so every URL answers `404 — Not found` while the build still reports
+success. The development server therefore lives in `tools/serve.js`, outside the path
+Vercel scans, and the site is served as plain static files.
 
 If you configure the project in the dashboard instead of through `vercel.json`, use
 **Framework Preset: Other**, **Build Command: (empty)**, **Output Directory: `.`** and
