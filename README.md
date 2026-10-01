@@ -69,10 +69,16 @@ root. `vercel.json` says exactly that:
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
   "buildCommand": null,
   "outputDirectory": "."
 }
 ```
+
+`"framework": null` tells Vercel the project has no framework, so it serves the files as
+plain static assets. Without it, Vercel keeps the auto-detected framework preset it saved
+on the project (historically *Node.js*, because the repo once had a root `server.js`) and
+tries to run the app as a Function.
 
 Without `outputDirectory: "."`, Vercel sees `package.json`, finds no build script and
 no output directory, and deploys "successfully" with an empty output — every URL then
